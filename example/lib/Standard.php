@@ -1,39 +1,4 @@
 <?php
-require 'LongProcess.php';
-
-// check input
-if (empty($_POST['id']) || empty($_POST['number'])) {
-	header_status(400); die;
-}
-
-$cacheFolder = $_SERVER['DOCUMENT_ROOT'] . '/cache/';
-
-try {
-	$lp = new LongProcess($_POST['id']);
-	$lp->tmpdir('cache');
-	//$lp->killProcess(true);
-	// long process
-	function long_process($a, $b, $c) {
-		global $lp;
-		file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/cache/long_process.txt', print_r(array($a, $b, $c->checkProgress(), $lp->file()), true));
-		//if ($b == 3) throw new Exception('Some error here.');
-		//if ($b == 6) throw new Exception('Some error here.');
-		$lp->taskMessage('YO! I am task ' . ($b+1));
-		sleep(1);
-	}
-	//$lp->process('long_process');
-	for ($i = 0; $i < $_POST['number']; $i++) {
-		$lp->addTask('long_process', array($cacheFolder, $i, $lp));
-	}
-	$lp->run();
-} catch (Exception $e) {
-	header_status(400); 
-	echo $e->getMessage();
-	die;
-}
-
-
-// function
 function header_status($statusCode) {
 	static $status_codes = null;
 
@@ -97,4 +62,3 @@ function header_status($statusCode) {
 		header($_SERVER['SERVER_PROTOCOL'] . ' ' . $status_string, true, $statusCode);
 	}
 }
-?> 

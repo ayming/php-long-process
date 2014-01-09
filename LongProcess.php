@@ -2,16 +2,20 @@
 /**
  * @name LongProcess.php
  * @author Au Yeung Chun Ming
- * @version 0.0.1
+ * @version 0.9.1
  * @copyright free for use
+ * @document https://github.com/ayming/php-long-process
  */
 class LongProcess {
+	private $process_key;
 	private $time_limit = 0; // warning: running process won't destroy if it runs into infinite loop
 	private $kill_process = false; // true: the process will be killed when task encounter exception
 	private $is_running = false;
+	private $preceding = 'progress-';
 	private $filename;
+	private $filetype = 'json';
 	private $tmpdir = 'tmp';
-	private $root_url = '/';
+	private $root_url = '';
 	private $output;
 	private $task_weight = 1;
 	private $tasks = array();
@@ -27,15 +31,23 @@ class LongProcess {
 		'checkTaskValid' => 'Task is not callable!',
 	);
 	
-	public function __construct($key = false) {
-		if (!$key) 
-			throw new Exception($this->error_message['checkKey']);
-		$this->filename = md5($key) . '.json';
+	public function __construct($key = '') {
+		if (!empty($key)) $this->key($key);
 	}
 	
 	/**
 	 * Setting config
 	 */
+	public function key($key = false) {
+		if ($key !== false) {
+			$this->process_key = $key;
+			$this->filename = md5($key) . '.' . $this->filetype;
+			return true;
+		} else {
+			return $this->process_key;
+		}
+	}
+	
 	public function tmpdir($dir = false) {
 		if ($dir !== false) {
 			$this->tmpdir = $dir;
@@ -85,25 +97,15 @@ class LongProcess {
 	 * Helper functions
 	 */
 	public function file() {
-		return $this->tmpdir . '/progress-' . $this->filename;
+		return $this->tmpdir . '/' . $this->preceding . $this->filename;
+	}
+	
+	public function fileUrl() {
+		return $this->root_url . $this->file();
 	}
 	
 	public function isRunning() {
 		return $this->is_running;
-	}
-	
-	public function checkProgress() {
-		$result = new stdClass();
-		$result->tasks = new stdClass();
-		$result->tasks->current = $this->tasks_progress_current;
-		$result->tasks->total = count($this->tasks);
-		$result->weight = new stdClass();
-		$result->weight->current = $this->tasks_progress_weight;
-		$result->weight->total = $this->tasks_total_weight;
-		$result->message = $this->tasks_message;
-		$result->fail = $this->tasks_fail;
-		$result->running = $this->is_running;
-		return $result;
 	}
 	
 	public function output($fnc) {
@@ -112,10 +114,6 @@ class LongProcess {
 	
 	public function taskMessage($msg) {
 		$this->tasks_message[$this->tasks_progress_current] = $msg;
-	}
-	
-	private function writeProgress() {
-		file_put_contents($this->file(), json_encode($this->checkProgress()), LOCK_EX);
 	}
 	
 	/**
@@ -154,8 +152,61 @@ class LongProcess {
 	}
 	
 	/**
+	 * Progress
+	 */	
+	public function checkRunningProgress() {
+		// reading directory is slow
+		// please use checkProgress by key instead
+		$result = array();
+		if ($handle = opendir($this->tmpdir)) {
+			while (false !== ($entry = readdir($handle))) {
+				if (preg_match('/^(' . $this->preceding . ')([0-9a-f]{32})\.(' . $this->filetype . ')$/i', $entry)) {
+					$result[] = $this->root_url . $this->tmpdir . '/' . $entry;
+				}
+			}
+			closedir($handle);
+		}
+		return json_encode($result);
+	}
+	
+	public function checkProgress() {
+		$file = $this->file();
+		if (file_exists($file)) {
+			//$data = json_decode(file_get_contents($file), true);
+			return $file;
+		}
+		return json_encode(array('key' => $this->process_key, 'running' => false));
+	}
+	 
+	private function getProgress() {
+		$result = new stdClass();
+		$result->key = $this->process_key;
+		$result->tasks = new stdClass();
+		$result->tasks->current = $this->tasks_progress_current;
+		$result->tasks->total = count($this->tasks);
+		$result->weight = new stdClass();
+		$result->weight->current = $this->tasks_progress_weight;
+		$result->weight->total = $this->tasks_total_weight;
+		$result->message = $this->tasks_message;
+		$result->fail = $this->tasks_fail;
+		$result->running = $this->is_running;
+		return $result;
+	}
+	
+	private function writeProgress() {
+		file_put_contents($this->file(), json_encode($this->getProgress()), LOCK_EX);
+	}
+	
+	
+	/**
 	 * Validation
 	 */
+	private function checkKey() {
+		if (!$this->process_key) 
+			throw new Exception($this->error_message['checkKey']);
+		return true;
+	}	
+	
 	private function checkDirectoryExisted() {
 		if (!file_exists($this->tmpdir))
 			throw new Exception($this->error_message['checkDirectoryExisted']);
@@ -175,6 +226,7 @@ class LongProcess {
 	}
 	
 	private function validation() {
+		$this->checkKey();
 		$this->checkDirectoryExisted();
 		$this->checkProcessValid();
 	}
@@ -192,7 +244,7 @@ class LongProcess {
 	}
 	
 	private function defaultOutput() {
-		echo json_encode(array('progress' => $this->root_url . $this->file()));
+		echo json_encode(array('key' => $this->process_key, 'progress' => $this->fileUrl()));
 	}
 	
 	private function afterOutput() {
@@ -225,8 +277,7 @@ class LongProcess {
 				'folder' => $this->tmpdir,
 				'name' => $this->filename,
 				'path' => $this->file()
-			), 
-			array($this, 'writeProgress')
+			)
 		);
 		
 		// Before run
