@@ -96,7 +96,7 @@ $lp->isRunning();
 
 #### Output
 
-While the background process started, any output would not be displayed. The output callback is executed before the background process. It can output any information. (Default: '{"key":<processKey>,"progress":<fileUrl>}')
+While the background process started, any output would not be displayed. The output callback is executed before the background process. It can output any information. (Default: '{"key":(**processKey**),"progress":(**fileUrl**)}')
 
 ```php
 $lp->output($callback, $arguments);
