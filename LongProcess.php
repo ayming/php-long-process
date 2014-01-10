@@ -2,7 +2,7 @@
 /**
  * @name LongProcess.php
  * @author Au Yeung Chun Ming
- * @version 0.9.1
+ * @version 0.9.2
  * @copyright free for use
  * @document https://github.com/ayming/php-long-process
  */
@@ -108,12 +108,8 @@ class LongProcess {
 		return $this->is_running;
 	}
 	
-	public function output($fnc) {
-		if (is_callable($fnc)) $this->output = $fnc;
-	}
-	
-	public function taskMessage($msg) {
-		$this->tasks_message[$this->tasks_progress_current] = $msg;
+	public function output($fnc, $args = array()) {
+		if (is_callable($fnc)) $this->output = array($fnc, $args);
 	}
 	
 	/**
@@ -124,6 +120,13 @@ class LongProcess {
 			$this->tasks[] = array($fnc, $args, $this->task_weight);
 			$this->tasks_total_weight += $this->task_weight;
 		}
+	}
+	
+	public function taskMessage($msg) {
+		if (!isset($this->tasks_message[$this->tasks_progress_current])) {
+			$this->tasks_message[$this->tasks_progress_current] = array();
+		}
+		$this->tasks_message[$this->tasks_progress_current][] = $msg;
 	}
 	
 	/**
@@ -271,22 +274,14 @@ class LongProcess {
 	 * Main function
 	 */
 	public function run() {
-		// Default argument
-		$args = array(
-			array(
-				'folder' => $this->tmpdir,
-				'name' => $this->filename,
-				'path' => $this->file()
-			)
-		);
-		
 		// Before run
 		$this->beforeRun();
 		
 		// Output user will see
 		$this->beforeOutput();
 		if ($this->output) {
-			call_user_func_array($this->output, $args);
+			list($fnc, $args) = $this->output;
+			call_user_func_array($fnc, $args);
 		} else {
 			$this->defaultOutput();
 		}
