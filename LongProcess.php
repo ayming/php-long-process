@@ -2,7 +2,7 @@
 /**
  * @name LongProcess.php
  * @author Au Yeung Chun Ming
- * @version 0.9.2
+ * @version 0.9.3
  * @copyright free for use
  * @document https://github.com/ayming/php-long-process
  */
@@ -13,9 +13,9 @@ class LongProcess {
 	private $is_running = false;
 	private $preceding = 'progress-';
 	private $filename;
-	private $filetype = 'json';
-	private $tmpdir = 'tmp';
-	private $root_url = '';
+	private $file_type = 'json';
+	private $folder_path = 'tmp';
+	private $folder_url = 'tmp';
 	private $output;
 	private $task_weight = 1;
 	private $tasks = array();
@@ -41,19 +41,28 @@ class LongProcess {
 	public function key($key = false) {
 		if ($key !== false) {
 			$this->process_key = $key;
-			$this->filename = md5($key) . '.' . $this->filetype;
+			$this->filename = md5($key) . '.' . $this->file_type;
 			return true;
 		} else {
 			return $this->process_key;
 		}
 	}
 	
-	public function tmpdir($dir = false) {
+	public function folderPath($dir = false) {
 		if ($dir !== false) {
-			$this->tmpdir = $dir;
+			$this->folder_path = $dir;
 			return true;
 		} else {
-			return $this->tmpdir;
+			return $this->folder_path;
+		}
+	}
+	
+	public function folderUrl($url = false) {
+		if ($url !== false) {
+			$this->folder_url = $url;
+			return true;
+		} else {
+			return $this->folder_url;
 		}
 	}
 	
@@ -75,15 +84,6 @@ class LongProcess {
 		}
 	}
 	
-	public function rootUrl($url = false) {
-		if ($url !== false) {
-			$this->root_url = $url;
-			return true;
-		} else {
-			return $this->root_url;
-		}
-	}
-	
 	public function killProcess($bool = '') {
 		if ($bool !== '') {
 			$this->kill_process = $bool;
@@ -97,11 +97,11 @@ class LongProcess {
 	 * Helper functions
 	 */
 	public function file() {
-		return $this->tmpdir . '/' . $this->preceding . $this->filename;
+		return $this->folder_path . '/' . $this->preceding . $this->filename;
 	}
 	
 	public function fileUrl() {
-		return $this->root_url . $this->file();
+		return $this->folder_url . '/' . $this->preceding . $this->filename;
 	}
 	
 	public function isRunning() {
@@ -161,10 +161,10 @@ class LongProcess {
 		// reading directory is slow
 		// please use checkProgress by key instead
 		$result = array();
-		if ($handle = opendir($this->tmpdir)) {
+		if ($handle = opendir($this->folder_path)) {
 			while (false !== ($entry = readdir($handle))) {
-				if (preg_match('/^(' . $this->preceding . ')([0-9a-f]{32})\.(' . $this->filetype . ')$/i', $entry)) {
-					$result[] = $this->root_url . $this->tmpdir . '/' . $entry;
+				if (preg_match('/^(' . $this->preceding . ')([0-9a-f]{32})\.(' . $this->file_type . ')$/i', $entry)) {
+					$result[] = $this->folder_url . '/' . $entry;
 				}
 			}
 			closedir($handle);
@@ -211,7 +211,7 @@ class LongProcess {
 	}	
 	
 	private function checkDirectoryExisted() {
-		if (!file_exists($this->tmpdir))
+		if (!file_exists($this->folder_path))
 			throw new Exception($this->error_message['checkDirectoryExisted']);
 		return true;
 	}

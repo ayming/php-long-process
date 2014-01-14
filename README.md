@@ -21,13 +21,22 @@ $lp->key($processKey); // set
 $lp->key(); // get
 ```
 
-#### Temporary Directory
+#### Folder Path
 
 A directory stores the progress files (Default: 'tmp')
 
 ```php
-$lp->tmpdir($tmpdir); // set
-$lp->tmpdir(); // get
+$lp->folderPath($dir); // set
+$lp->folderPath(); // get
+```
+
+#### Folder Url
+
+Url of progress folder (Default: 'tmp')
+
+```php
+$lp->folderUrl($url); // set
+$lp->folderUrl(); // get
 ```
 
 #### Time Limit
@@ -48,15 +57,6 @@ Used to monitor the progress (Default: 1)
 ```php
 $lp->taskWeight($taskWeight); // set
 $lp->taskWeight(); // get
-```
-
-#### Root Url
-
-Path before tmpdir (Default: '')
-
-```php
-$lp->rootUrl($rootUrl); // set
-$lp->rootUrl(); // get
 ```
 
 #### killProcess
